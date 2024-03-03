@@ -11,6 +11,15 @@ import (
 	"github.com/horsley/svrkit"
 )
 
+type MetaKey string
+
+const (
+	MetaWriteKey    = MetaKey("key")
+	MetaIPCheck     = MetaKey("ip_check")
+	MetaReadAuth    = MetaKey("basic_auth")
+	MetaContentType = MetaKey("content-type")
+)
+
 type pathMeta struct {
 	root        string
 	metaAbsPath string
@@ -64,15 +73,15 @@ func (p *pathMeta) SaveContent(rd io.Reader) error {
 }
 
 func (p *pathMeta) WriteKey() (string, bool) {
-	return p.GetText("key", true)
+	return p.GetText(MetaWriteKey, true)
 }
 
 func (p *pathMeta) SetWriteKey(newKey string) error {
-	return p.Set("key", []byte(newKey))
+	return p.Set(MetaWriteKey, []byte(newKey))
 }
 
 func (p *pathMeta) GetBasicAuth() map[string]string {
-	auth, ok := p.Get("basic_auth", true)
+	auth, ok := p.Get(MetaReadAuth, true)
 	if ok {
 		var result map[string]string
 		err := json.Unmarshal(auth, &result)
@@ -88,11 +97,11 @@ func (p *pathMeta) SetBasicAuth(in map[string]string) error {
 	if err != nil {
 		return err
 	}
-	return p.Set("basic_auth", bin)
+	return p.Set(MetaReadAuth, bin)
 }
 
 func (p *pathMeta) GetIPChecker() func(ip string) bool {
-	auth, ok := p.Get("ip_check", true)
+	auth, ok := p.Get(MetaIPCheck, true)
 	if ok {
 		var result []string
 		err := json.Unmarshal(auth, &result)
@@ -106,7 +115,7 @@ func (p *pathMeta) GetIPChecker() func(ip string) bool {
 	return nil
 }
 
-func (p *pathMeta) GetText(k string, inherit bool) (string, bool) {
+func (p *pathMeta) GetText(k MetaKey, inherit bool) (string, bool) {
 	ret, ok := p.Get(k, inherit)
 	if ok {
 		return string(ret), ok
@@ -114,13 +123,13 @@ func (p *pathMeta) GetText(k string, inherit bool) (string, bool) {
 	return "", false
 }
 
-func (p *pathMeta) Get(k string, inherit bool) ([]byte, bool) {
+func (p *pathMeta) Get(k MetaKey, inherit bool) ([]byte, bool) {
 	if !p.Valid() {
 		return nil, false
 	}
 	dir := p.metaAbsPath
 	for strings.HasPrefix(dir, p.root) {
-		keyPath := filepath.Join(dir, k)
+		keyPath := filepath.Join(dir, string(k))
 		data, err := os.ReadFile(keyPath)
 		if err == nil {
 			return data, true
@@ -134,7 +143,7 @@ func (p *pathMeta) Get(k string, inherit bool) ([]byte, bool) {
 	return nil, false
 }
 
-func (p *pathMeta) Set(k string, content []byte) error {
+func (p *pathMeta) Set(k MetaKey, content []byte) error {
 	if !p.Valid() {
 		return errors.New("invalid meta")
 	}
@@ -142,7 +151,7 @@ func (p *pathMeta) Set(k string, content []byte) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(p.metaAbsPath, k), content, 0644)
+	return os.WriteFile(filepath.Join(p.metaAbsPath, string(k)), content, 0644)
 }
 
 func (p *pathMeta) Destroy() error {

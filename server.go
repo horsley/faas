@@ -131,7 +131,7 @@ func readFileHandler(rw *svrkit.ResponseWriter, r *svrkit.Request) {
 		return
 	}
 
-	if contentType, ok := targetMeta.GetText("content-type", false); ok {
+	if contentType, ok := targetMeta.GetText(MetaContentType, false); ok {
 		rw.Header().Set("Content-Type", contentType)
 	}
 	http.ServeFile(rw, r.Request, targetMeta.ContentPath())
