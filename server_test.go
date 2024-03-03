@@ -5,6 +5,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -282,6 +283,28 @@ func TestDeleteBadPath(t *testing.T) {
 	if resp != `{"Code":403,"Data":null,"Message":"非法目标"}` {
 		t.Error("unexpected result:", resp)
 	}
+}
+
+func TestIPLimit(t *testing.T) {
+	mockReq, _ := http.NewRequest("GET", "http://abc.com/test_upload", nil)
+	MetaOf("test_upload").Set(MetaIPCheck, []byte(`["1.2.3.4"]`))
+	MetaOf("test_upload").SaveContent(strings.NewReader("123"))
+
+	rec := httptest.NewRecorder()
+	handleRequest(&svrkit.ResponseWriter{ResponseWriter: rec}, &svrkit.Request{Request: mockReq})
+
+	if rec.Result().StatusCode != 403 {
+		t.Error("not limited")
+	}
+
+	mockReq.RemoteAddr = "1.2.3.4:4556"
+	rec2 := httptest.NewRecorder()
+	handleRequest(&svrkit.ResponseWriter{ResponseWriter: rec2}, &svrkit.Request{Request: mockReq})
+
+	if rec2.Result().StatusCode != 200 {
+		t.Error("not allow")
+	}
+	MetaOf("test_upload").Destroy()
 }
 
 func TestClean(t *testing.T) {
