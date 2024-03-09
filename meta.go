@@ -18,6 +18,7 @@ const (
 	MetaIPCheck     = MetaKey("ip_check")
 	MetaReadAuth    = MetaKey("basic_auth")
 	MetaContentType = MetaKey("content-type")
+	MetaNoIndex     = MetaKey("no_index")
 )
 
 type pathMeta struct {
@@ -49,6 +50,11 @@ func (p *pathMeta) ContentPath() string {
 		return ""
 	}
 	return filepath.Join(STORAGE, contentSubDir, p.srcPath)
+}
+
+func (p *pathMeta) IsDir() bool {
+	info, err := os.Stat(p.ContentPath())
+	return err == nil && info.IsDir()
 }
 
 func (p *pathMeta) SaveContent(rd io.Reader) error {

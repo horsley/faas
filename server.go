@@ -131,6 +131,13 @@ func readFileHandler(rw *svrkit.ResponseWriter, r *svrkit.Request) {
 		return
 	}
 
+	if targetMeta.IsDir() {
+		if noIndex, _ := targetMeta.GetText(MetaNoIndex, true); noIndex != "" {
+			rw.HTTPError(http.StatusForbidden, "NoIndex")
+			return
+		}
+	}
+
 	if contentType, ok := targetMeta.GetText(MetaContentType, false); ok {
 		rw.Header().Set("Content-Type", contentType)
 	}
